@@ -235,7 +235,7 @@
     </div>
     <div id="msg"></div>
   </section>
-  <div class="label" style="margin-top:40px;text-align:center;opacity:.6">Refocus To-Do · v3</div>
+  <div class="label" style="margin-top:40px;text-align:center;opacity:.6">Refocus To-Do · v4</div>
 </main>
 
 <div class="overlay" id="bkOverlay" hidden>
@@ -614,20 +614,20 @@
   });
   $("clear").addEventListener("click", function () { state.custom = state.custom.filter(function (it) { return !it.done; }); save(); renderCustom(); });
   $("copy").addEventListener("click", function () {
-    var t = state.custom.map(function (it) { return (it.done ? "[x] " : "[ ] ") + it.text; }).join("\n");
+    var t = makeBackup();
     try { navigator.clipboard.writeText(t).then(function () { say("Copied"); }, function () { say("Copy blocked"); }); } catch (e) { say("Copy blocked"); }
   });
 
   /* ---------- back up / restore ---------- */
   function renderAll() { renderBanner(); renderBlocks(); renderLife(); updateCounts(); renderCustom(); }
   function makeBackup() {
-    return "REFOCUS-BACKUP v1\n" + JSON.stringify({ app:"refocus-todo", v:1, exportedAt:new Date().toISOString(), state:state });
+    return state.custom.map(function (it) { return it.text; }).join("\n");
   }
   function showBk(mode, text) {
     var rs = mode === "restore";
     $("bkLabel").textContent = rs ? "Restore" : "Back up";
     $("bkNote").textContent = rs
-      ? "Paste your backup text below, then tap Restore. This replaces your current tasks."
+      ? "Paste your task list below (one task per line), then tap Restore. This replaces your current tasks."
       : "Couldn\u2019t copy automatically. Tap the text, select all, copy it, and paste it into Notes.";
     $("bkText").value = rs ? "" : text;
     $("bkText").readOnly = !rs;
@@ -641,7 +641,7 @@
   $("backup").addEventListener("click", function () {
     var t = makeBackup();
     try {
-      navigator.clipboard.writeText(t).then(function () { say("Backup copied \u2014 paste it into Notes"); }, function () { showBk("backup", t); });
+      navigator.clipboard.writeText(t).then(function () { say("Copied \u2014 paste it into Notes"); }, function () { showBk("backup", t); });
     } catch (e) { showBk("backup", t); }
   });
   $("restore").addEventListener("click", function () { showBk("restore"); });
@@ -652,16 +652,27 @@
     try { navigator.clipboard.writeText(ta.value).then(function () { $("bkNote").textContent = "Copied."; }, function () {}); } catch (e) {}
   });
   $("bkGo").addEventListener("click", function () {
-    var raw = $("bkText").value, i = raw.indexOf("{"), j = raw.lastIndexOf("}"), o = null;
-    if (i >= 0 && j > i) { try { o = JSON.parse(raw.slice(i, j + 1)); } catch (e) { o = null; } }
-    var st = o && o.state;
-    if (!st || !Array.isArray(st.custom)) { $("bkNote").textContent = "That doesn\u2019t look like a Refocus backup. Paste the full text and try again."; return; }
-    state.custom = st.custom.filter(function (x) { return x && typeof x.text === "string" && x.text.trim(); })
-      .map(function (x) { return { text: x.text.slice(0, 500), done: !!x.done }; });
-    if (st.day === today() && st.checks && typeof st.checks === "object") state.checks = st.checks;
-    if (st.banner && typeof st.banner === "object") state.banner = { collapsed: !!st.banner.collapsed, dismissed: !!st.banner.dismissed };
+    var raw = $("bkText").value, tasks = null;
+    var i = raw.indexOf("{"), j = raw.lastIndexOf("}");
+    if (raw.indexOf("REFOCUS-BACKUP") !== -1 && i >= 0 && j > i) {
+      // older full backup format
+      try {
+        var o = JSON.parse(raw.slice(i, j + 1)), st = o && o.state;
+        if (st && Array.isArray(st.custom)) {
+          tasks = st.custom.filter(function (x) { return x && typeof x.text === "string"; }).map(function (x) { return x.text; });
+          if (st.day === today() && st.checks && typeof st.checks === "object") state.checks = st.checks;
+        }
+      } catch (e) { tasks = null; }
+    } else {
+      tasks = raw.split(/\r?\n/);
+    }
+    if (!tasks) { $("bkNote").textContent = "Couldn\u2019t read that. Paste the full list and try again."; return; }
+    tasks = tasks.map(function (t) { return t.replace(/^\s*(?:\[[ xX]?\]|[-\u2022*]|\d+[.)])\s*/, "").trim(); })
+      .filter(function (t) { return t; });
+    if (!tasks.length) { $("bkNote").textContent = "Nothing to restore. Paste your list first."; return; }
+    state.custom = tasks.map(function (t) { return { text: t.slice(0, 500), done: false }; });
     save(); renderAll(); closeBk();
-    say("Restored " + state.custom.length + " tasks");
+    say("Restored " + tasks.length + " tasks");
   });
   document.addEventListener("keydown", function (e) { if (e.key === "Escape" && !$("bkOverlay").hidden) closeBk(); });
 
