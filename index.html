@@ -1,0 +1,634 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#0a0a0a">
+<title>Refocus To-Do</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Poppins:wght@300;400;500&display=swap">
+<style>
+  @font-face { font-family:"Brigends"; src:url("Brigends-Expanded.otf") format("opentype"); font-weight:100 900; font-style:normal; font-display:swap; unicode-range:U+0000-0025, U+0027-FFFF; }
+  :root {
+    --bg:#0a0a0a; --panel:#111111; --line:#2a2620; --ink:#ece6d8; --mute:#7d766a;
+    --gold:#c9a24b; --gold-hi:#e6c370; --rec:#d6453a;
+    --serif:"Brigends", "Poppins", Georgia, serif;
+    --mono:"Poppins", -apple-system, system-ui, sans-serif;
+    --sans:"Poppins", -apple-system, system-ui, sans-serif;
+  }
+  * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html { background:var(--bg); }
+  body { margin:0; background:var(--bg); color:var(--ink); font:300 16px/1.5 var(--sans); min-height:100vh; }
+  main { max-width:560px; margin:0 auto; padding:calc(28px + env(safe-area-inset-top)) 22px calc(56px + env(safe-area-inset-bottom)); }
+  [hidden] { display:none !important; }
+
+  .eyebrow { font:400 11px var(--mono); letter-spacing:.32em; text-transform:uppercase; color:var(--gold); display:flex; align-items:center; gap:10px; }
+  .eyebrow::before { content:""; width:28px; height:1px; background:var(--gold); }
+  h1 { font:400 28px/1.1 var(--serif); letter-spacing:.01em; margin:14px 0 6px; }
+  h1 em { font-style:normal; color:var(--gold); }
+  .sub { color:var(--mute); font-size:13px; letter-spacing:.04em; margin:0 0 22px; }
+  .label { font:400 10px var(--mono); letter-spacing:.28em; text-transform:uppercase; color:var(--mute); }
+
+  button { font:400 12px var(--mono); letter-spacing:.2em; text-transform:uppercase; border-radius:0; cursor:pointer; padding:12px 16px; transition:background .15s, color .15s, border-color .15s; }
+  .primary { background:var(--gold); color:#0a0a0a; border:1px solid var(--gold); }
+  .primary:active { background:var(--gold-hi); }
+  .ghost { background:transparent; color:var(--mute); border:1px solid var(--line); padding:11px 14px; font-size:11px; }
+  .ghost:active, .ghost.warn { color:var(--gold); border-color:var(--gold); }
+  .linkbtn { background:none; border:0; padding:0; color:var(--gold); font-size:10px; letter-spacing:.24em; }
+
+  /* tabs */
+  .tabs { display:flex; border-bottom:1px solid var(--line); margin-bottom:22px; }
+  .tab { flex:1; background:none; border:0; border-bottom:1px solid transparent; margin-bottom:-1px; color:var(--mute); padding:14px 4px; font-size:11px; }
+  .tab[aria-selected="true"] { color:var(--gold); border-bottom-color:var(--gold); }
+
+  /* banner */
+  .banner { border:1px solid var(--line); background:var(--panel); padding:16px 18px; position:relative; margin-bottom:22px; }
+  .banner::before { content:""; position:absolute; left:-1px; top:-1px; width:12px; height:12px; border-left:1px solid var(--gold); border-top:1px solid var(--gold); }
+  .banner .top { display:flex; align-items:center; justify-content:space-between; gap:10px; }
+  .banner .btns { display:flex; gap:4px; }
+  .icon { background:none; border:0; color:var(--mute); font:300 20px/1 var(--sans); letter-spacing:0; padding:4px 8px; }
+  .icon:active { color:var(--gold); }
+  .banner h2 { font:400 22px/1.2 var(--serif); margin:10px 0 2px; }
+  .banner .st { color:var(--gold); font:400 13px/1.4 var(--serif); letter-spacing:.04em; margin:0; }
+  .banner blockquote { margin:14px 0 2px; padding-left:14px; border-left:1px solid var(--gold); color:#b9b2a2; font-size:14px; line-height:1.6; }
+
+  /* progress */
+  .overall { margin-bottom:6px; }
+  .overall .row { display:flex; justify-content:space-between; align-items:baseline; }
+  #today { font:300 12px var(--mono); letter-spacing:.14em; color:var(--gold); }
+  .bar { height:1px; background:var(--line); position:relative; margin-top:8px; }
+  .bar i { position:absolute; left:0; top:-1px; height:3px; background:var(--gold); width:0; transition:width .6s cubic-bezier(.2,.8,.2,1); }
+  .actrow { display:flex; gap:10px; margin:16px 0 26px; }
+  .actrow .ghost { flex:1; }
+
+  /* blocks */
+  details { border-top:1px solid var(--line); }
+  details.last { border-bottom:1px solid var(--line); }
+  summary { list-style:none; display:flex; align-items:center; gap:12px; padding:18px 2px 14px; cursor:pointer; }
+  summary::-webkit-details-marker { display:none; }
+  summary .no { font:300 11px var(--mono); color:var(--mute); letter-spacing:.14em; width:22px; }
+  summary .tt { flex:1; }
+  summary .ttl { font:400 20px/1.2 var(--serif); display:block; }
+  summary .ttl em { color:var(--gold); }
+  summary .tag { display:block; font:300 12px/1.4 var(--sans); color:var(--mute); margin-top:3px; letter-spacing:.02em; }
+  summary .cnt { font:300 12px var(--mono); color:var(--mute); letter-spacing:.1em; }
+  summary .cnt.full { color:var(--gold); }
+  summary .chev { color:var(--gold); font:300 16px var(--mono); transition:transform .25s; }
+  details[open] summary .chev { transform:rotate(90deg); }
+  .mini { height:1px; background:var(--line); position:relative; margin:0 2px 4px; }
+  .mini i { position:absolute; left:0; top:0; height:1px; background:var(--gold); width:0; transition:width .5s; }
+
+  ul { list-style:none; padding:0; margin:0; }
+  li { display:flex; align-items:flex-start; gap:14px; padding:15px 2px; border-bottom:1px solid var(--line); position:relative; }
+  details ul li:last-child { border-bottom:0; }
+  .box { appearance:none; -webkit-appearance:none; width:20px; height:20px; border:1px solid var(--gold); background:transparent; margin:3px 0 0; flex:none; position:relative; border-radius:0; }
+  .box:checked { background:var(--gold); }
+  .box:checked::after { content:""; position:absolute; left:6px; top:2px; width:5px; height:10px; border:solid #0a0a0a; border-width:0 1.5px 1.5px 0; transform:rotate(45deg); }
+  li .body { flex:1; min-width:0; }
+  li .t { font-size:17px; word-break:break-word; }
+  li.done .t { color:#5a554b; text-decoration:line-through; text-decoration-color:var(--gold); }
+  li.done .n { color:var(--gold); }
+  .tbtn { all:unset; display:flex; width:100%; gap:10px; align-items:flex-start; cursor:pointer; font-size:17px; line-height:1.4; }
+  .tbtn .t { flex:1; }
+  .tbtn .pm { color:var(--gold); font:300 16px/1.5 var(--mono); flex:none; }
+  .desc { display:none; color:#a59e8f; font-size:14px; line-height:1.6; margin-top:8px; }
+  li.open .desc { display:block; animation:fade .35s ease both; }
+  @keyframes fade { from { opacity:0; transform:translateY(-4px); } to { opacity:1; transform:none; } }
+
+  .kick { font:400 9px var(--mono); letter-spacing:.22em; text-transform:uppercase; color:var(--gold); margin-bottom:3px; }
+  .group { margin:46px 0 10px; }
+  .pq { margin:0 0 14px; padding-left:14px; border-left:1px solid var(--gold); color:#b9b2a2; font-size:13px; line-height:1.6; }
+
+  /* my tasks */
+  .composer { border:1px solid var(--line); background:var(--panel); padding:16px 16px 12px; position:relative; }
+  .composer::before, .composer::after { content:""; position:absolute; width:12px; height:12px; border:1px solid var(--gold); }
+  .composer::before { top:-1px; left:-1px; border-right:0; border-bottom:0; }
+  .composer::after { bottom:-1px; right:-1px; border-left:0; border-top:0; }
+  textarea { width:100%; border:0; outline:0; resize:none; background:transparent; color:var(--ink); font:300 19px/1.45 var(--sans); min-height:76px; margin-top:8px; caret-color:var(--gold); }
+  textarea::placeholder { color:#4d483f; }
+  .actions { display:flex; gap:10px; align-items:center; margin-top:8px; padding-top:12px; border-top:1px solid var(--line); }
+  .spacer { flex:1; }
+  #mic { display:none; background:transparent; color:var(--gold); border:1px solid var(--gold); align-items:center; }
+  #mic .dot { display:inline-block; width:8px; height:8px; border-radius:50%; background:var(--gold); margin-right:8px; }
+  #mic.on { color:var(--rec); border-color:var(--rec); }
+  #mic.on .dot { background:var(--rec); animation:rec 1s infinite; }
+  @keyframes rec { 50% { opacity:.2; } }
+  .listhead { display:flex; justify-content:space-between; align-items:baseline; margin:34px 0 10px; }
+  #count { font:300 12px var(--mono); letter-spacing:.14em; color:var(--gold); }
+  #list { border-top:1px solid var(--line); }
+  li .n { font:300 12px/1.9 var(--mono); color:var(--mute); width:24px; flex:none; letter-spacing:.08em; }
+  .x { background:transparent; color:#4d483f; border:0; padding:0 4px; font:300 24px/1 var(--sans); letter-spacing:0; }
+  .x:active { color:var(--rec); }
+  li.enter { animation:enter .55s cubic-bezier(.2,.8,.2,1) both; }
+  li.enter .t { animation:glow 1.2s ease-out both; }
+  li.enter::after { content:""; position:absolute; left:0; bottom:-1px; height:1px; background:var(--gold); animation:sweep .9s ease-out both; }
+  @keyframes enter { from { opacity:0; transform:translateY(-14px); max-height:0; padding-top:0; padding-bottom:0; } to { opacity:1; transform:none; max-height:200px; } }
+  @keyframes glow { 0% { color:var(--gold-hi); text-shadow:0 0 14px rgba(230,195,112,.6); } 100% { color:var(--ink); text-shadow:none; } }
+  @keyframes sweep { from { width:0; opacity:1; } to { width:100%; opacity:0; } }
+  .empty { color:var(--mute); text-align:center; padding:34px 0; font:400 16px var(--serif); border-bottom:1px solid var(--line); border-top:1px solid var(--line); }
+  .tools { display:flex; gap:10px; margin-top:20px; }
+  #msg { color:var(--gold); font:300 11px var(--mono); letter-spacing:.2em; text-transform:uppercase; min-height:18px; margin-top:14px; }
+
+  /* scorecard modal */
+  .overlay { position:fixed; inset:0; background:rgba(0,0,0,.82); z-index:50; display:flex; align-items:flex-end; justify-content:center; animation:fadeo .25s ease both; }
+  @keyframes fadeo { from { opacity:0; } to { opacity:1; } }
+  .sheet { background:var(--bg); border:1px solid var(--line); width:100%; max-width:600px; max-height:88vh; overflow:auto; padding:22px 20px calc(28px + env(safe-area-inset-bottom)); animation:rise .35s cubic-bezier(.2,.8,.2,1) both; }
+  @keyframes rise { from { transform:translateY(30px); opacity:0; } to { transform:none; opacity:1; } }
+  .sheet .hd { display:flex; justify-content:space-between; align-items:center; }
+  .sheet h3 { font:400 24px/1.15 var(--serif); margin:10px 0 16px; }
+  .sheet h3 em { color:var(--gold); }
+  table { width:100%; border-collapse:collapse; font-size:13px; }
+  th { font:400 9px var(--mono); letter-spacing:.2em; text-transform:uppercase; color:var(--mute); text-align:left; padding:8px 8px 8px 0; border-bottom:1px solid var(--gold); }
+  td { padding:12px 8px 12px 0; border-bottom:1px solid var(--line); vertical-align:top; line-height:1.45; }
+  td:first-child { color:var(--gold); font:400 10px/1.6 var(--mono); letter-spacing:.12em; text-transform:uppercase; white-space:nowrap; }
+  td:last-child { color:#cfc8b8; font-family:var(--serif); font-style:normal; font-size:12px; padding-right:0; }
+
+  @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation:none !important; transition:none !important; } }
+</style>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" type="image/png" href="icon-192.png">
+<meta name="apple-mobile-web-app-title" content="Refocus">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="mobile-web-app-capable" content="yes">
+</head>
+<body>
+<main>
+  <div class="eyebrow" id="dateLine">Today</div>
+  <h1>Refocus <em>To-Do</em></h1>
+  <p class="sub">Quiet, steady, intentional.</p>
+  <div class="label" id="sync" style="margin:-12px 0 20px"></div>
+
+  <div class="tabs" role="tablist">
+    <button class="tab" id="tabR" role="tab" aria-selected="true" type="button">Routine</button>
+    <button class="tab" id="tabT" role="tab" aria-selected="false" type="button">My tasks</button>
+  </div>
+
+  <!-- ROUTINE -->
+  <section id="panelR">
+    <div class="banner" id="banner">
+      <div class="top">
+        <span class="label">Core overview</span>
+        <span class="btns">
+          <button class="icon" id="bnCollapse" type="button" aria-label="Collapse">–</button>
+          <button class="icon" id="bnDismiss" type="button" aria-label="Dismiss">×</button>
+        </span>
+      </div>
+      <h2>Silent Charisma</h2>
+      <p class="st">Musicianship, Presence &amp; The Fifth Gospel</p>
+      <blockquote id="bnQuote"></blockquote>
+    </div>
+    <button class="linkbtn" id="bnShow" type="button" hidden style="margin:0 0 18px">Show overview</button>
+
+    <div class="overall">
+      <div class="row"><span class="label">Today</span><span id="today"></span></div>
+      <div class="bar"><i id="barFill"></i></div>
+    </div>
+    <div class="actrow">
+      <button class="ghost" id="scoreBtn" type="button">View scorecard</button>
+      <button class="ghost" id="resetBtn" type="button">Reset day</button>
+    </div>
+
+    <div id="blocks"></div>
+
+    <div class="group"><span class="label">The five pillars · your goals</span></div>
+    <blockquote class="pq" id="pq"></blockquote>
+    <div id="pillars"></div>
+
+    <div class="group"><span class="label">Polymath daily protocol · 7 AM start</span></div>
+    <blockquote class="pq" id="pq2"></blockquote>
+    <div id="protocol"></div>
+
+    <div class="group"><span class="label">Lifestyle checklist · resets at midnight</span></div>
+    <div id="life"></div>
+  </section>
+
+  <!-- MY TASKS -->
+  <section id="panelT" hidden>
+    <div class="composer">
+      <div class="label">New task</div>
+      <textarea id="text" placeholder="Say or type a task…" rows="2" enterkeyhint="done"></textarea>
+      <div class="actions">
+        <button id="mic" type="button"><span class="dot"></span><span id="micTxt">Dictate</span></button>
+        <span class="spacer"></span>
+        <button class="ghost" id="addLines" type="button">Split lines</button>
+        <button class="primary" id="add" type="button">Log</button>
+      </div>
+    </div>
+    <div class="listhead">
+      <span class="label">My tasks</span>
+      <span id="count"></span>
+    </div>
+    <ul id="list"></ul>
+    <div class="empty" id="empty">Nothing here yet. Speak your first task.</div>
+    <div class="tools">
+      <button class="ghost" id="clear" type="button">Clear done</button>
+      <button class="ghost" id="copy" type="button">Copy all</button>
+    </div>
+    <div id="msg"></div>
+  </section>
+</main>
+
+<div class="overlay" id="overlay" hidden>
+  <div class="sheet" role="dialog" aria-modal="true" aria-label="Scorecard">
+    <div class="hd"><span class="label">Reference</span><button class="icon" id="scClose" type="button" aria-label="Close">×</button></div>
+    <h3>Silent <em>scorecard</em></h3>
+    <table>
+      <thead><tr><th>Block</th><th>Core habit</th><th>What it projects</th></tr></thead>
+      <tbody id="scBody"></tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+(function () {
+  var KEY = "voice-todo-v2", OLD = "voice-todo-v1";
+  var QUOTE = "“Silent charisma” (quiet confidence, high presence, low neediness, and letting actions speak louder than words) fits naturally with both musicianship and living out the Fifth Gospel, commanding attention in a culture of over-talking.";
+
+  var BLOCKS = [
+    { id:"mo", name:"Morning", tag:"Grounded Baseline & Inner Stillness", tasks:[
+      ["Drink water, get morning sun, pray 15 min", "Hydrate immediately (500 mL–1 L), step into natural morning light without sunglasses, and spend time in quiet prayer and Scripture before checking messages to establish an unhurried internal tempo.", "Water + Morning Sunlight + Silent Prayer"],
+      ["Groom sharp and wear clean, fitted, neutral clothes", "Keep grooming sharp and wardrobe clean, tailored, and minimalist (neutral tones, great fit, subtle scent) to rely on effortless order rather than flashy peacocking.", "Understated, Intentional Presentation"],
+      ["Eat a high-protein, healthy-fat breakfast", "Eat clean protein and healthy fats to keep blood glucose and mood steady, preventing nervous energy or irritability.", "High-Protein Breakfast"]
+    ]},
+    { id:"dy", name:"Daytime", tag:"Quiet Mastery, Physique & Vocal Economy", tasks:[
+      ["Practice music 45–90 min, no phone, no posting", "Let competence do the talking through uninterrupted time sharpening your craft (sight-reading, phrasing, technique) without broadcasting the grind on social media for validation.", "Deep Work & Deliberate Musical Practice"],
+      ["Train 45–60 min: heavy lifting or Zone 2 cardio", "Alternate heavy compound lifting (building the V-taper and driving testosterone) with Zone 2 cardio so strong posture and physical vitality give your silence weight, making you look composed rather than timid.", "Physical Training"],
+      ["Speak slowly from your chest, don’t fill silences", "Speak less, mean more, and never rush to fill awkward silences. Breathe from your diaphragm, drop your jaw, and speak slowly from your chest since a calm, concise sentence carries far more authority than nervous over-explaining.", "Vocal Economy & Chest Resonance"]
+    ]},
+    { id:"ev", name:"Evening & Gig Nights", tag:"Magnetic Presence & Fifth Gospel Witness", tasks:[
+      ["Relax shoulders, stop fidgeting, hold warm eye contact", "Eliminate nervous fidgeting whether in a meeting, at a coffee shop, or on stage by keeping shoulders relaxed and back, moving deliberately, and holding steady, warm eye contact when people speak to you.", "Open Posture & Stillness"],
+      ["Listen fully and ask one question, don’t steer back to yourself", "Make others feel completely seen by listening with full attention, asking one thoughtful question, and letting the other person talk without steering the topic back to yourself.", "Deep Listening Over Self-Promotion"],
+      ["Be warm to everyone, limit alcohol, stay respectful with women", "Let character be unmistakable without preaching at people by treating staff, sound techs, and peers with consistent warmth, staying sharp and self-disciplined with alcohol, and interacting with women with calm, respectful directness without chasing or seeking approval.", "Fifth Gospel · Quiet Integrity"],
+      ["Walk after dinner or gig, then 2–3 physiological sighs", "Take a brief walk after dinner or a gig and run 2–3 physiological sighs (double nasal inhale, long mouth exhale) to clear residual adrenaline so the body stays relaxed.", "Post-Set / Evening Downshift"]
+    ]},
+    { id:"ni", name:"Night", tag:"Deep Sleep & Mental Reset", tasks:[
+      ["Dim lights and put devices away 60 min before bed", "Lower overhead lights and put devices away so melatonin rises naturally, ensuring the deep slow-wave sleep needed for testosterone recovery and emotional composure.", "Dim Lights & Screen Cutoff"],
+      ["2-min prayer: give thanks, hand your worries to God", "Close the day in quiet gratitude, releasing things outside your control to God so you wake up light and unburdened.", "Nightly Examen & Surrender"]
+    ]}
+  ];
+
+  var PILLARS_QUOTE = "Female sexual attraction is driven by an interplay of evolutionary biology (signals of genetic health and vitality), social status/competence, and interpersonal behavior (emotional safety and calibration).";
+  var PILLARS = [
+    { id:"pv", name:"Vitality", tag:"Physical Indicators of Health", tasks:[
+      ["Lift for shoulders and upper back (V-taper)", "Build broad shoulders and a strong upper back over a leaner waist. A high shoulder-to-waist ratio is one of the strongest universal predictors of male physical attractiveness, signaling strength and athletic capability.", "Vitality · Train for the V-Taper"],
+      ["Do your skin, hair and grooming care", "Clear skin, a defined jawline, and healthy hair and grooming act as visible biomarkers of strong immune function and hormonal balance.", "Vitality · Skin, Jaw & Hair"],
+      ["Check posture: shoulders open, move slowly", "Stand upright with relaxed, open shoulders, move with deliberate control rather than frantic nervous energy, and occupy space comfortably to project confidence and calm.", "Vitality · Posture & Movement"]
+    ]},
+    { id:"pp", name:"Presence", tag:"Vocal Presence & Non-Verbal Communication", tasks:[
+      ["Speak from your chest at a slow pace", "Project a deeper, resonant voice from the chest at a measured pace. Rushing words or speaking with a tense, high-pitched throat tone communicates anxiety or submissiveness.", "Presence · Voice"],
+      ["Hold relaxed eye contact in conversations", "Hold relaxed, attentive eye contact without darting away nervously or staring aggressively. It creates immediate interpersonal tension and presence.", "Presence · Eye Contact"],
+      ["Stay calm when something annoys or tests you", "Stay emotionally grounded when faced with minor inconveniences, social pressure, or testing. It signals high stress resilience.", "Presence · Composure"]
+    ]},
+    { id:"pd", name:"Drive", tag:"Competence, Status & Direction", tasks:[
+      ["Spend focused time on your craft (music or work)", "Excel at a craft, skill, career, or creative pursuit such as musicianship, athletics, or leadership. It signals discipline, intelligence, and high status.", "Drive · Mastery"],
+      ["Take one concrete step toward a personal goal", "Keep clear personal goals and forward momentum rather than drifting aimlessly. A compelling sense of purpose is something people naturally want to be around.", "Drive · Direction"],
+      ["Treat everyone well, including service workers", "Be respected by peers, treat service workers well, and hold natural leadership in group settings to demonstrate high social intelligence.", "Drive · Respect"]
+    ]},
+    { id:"pl", name:"Polarity", tag:"Emotional Calibration & Safety", tasks:[
+      ["Say what you want clearly, respectfully, without neediness", "Be clear about romantic or sexual interest without being needy, apologetic, or overly aggressive. Lead interactions smoothly while respecting boundaries.", "Polarity · Intentionality"],
+      ["Use light humor or teasing in conversation", "Use wit, teasing, and lighthearted banter to break social tension and keep interactions emotionally stimulating rather than overly serious or interview-like.", "Polarity · Playfulness"],
+      ["Be warm and trustworthy, keep some edge and mystery", "Be strong and warm: trustworthy and respectful, with enough masculine edge and mystery that the dynamic stays exciting rather than purely platonic.", "Polarity · Safety + Edge"]
+    ]},
+    { id:"ps", name:"Style", tag:"Grooming, Scent & Style", tasks:[
+      ["Wear clothes that fit well and suit the setting", "Clothes don\u2019t need to be expensive, but they should fit the body well (highlighting the shoulders and tapering at the waist) and match the context cleanly.", "Style · Dress to Fit"],
+      ["Check skin, breath and hair, wear a light fragrance", "Clean skin, fresh breath, a well-maintained haircut and facial hair, and a subtle, complementary fragrance.", "Style · Hygiene & Scent"]
+    ]}
+  ];
+
+  var PROTOCOL_NOTE = "Stacked learning: layer your English fluency and math skills on top of your core study topics. Every block below does double duty.";
+  var PROTOCOL = [
+    { id:"xd", name:"Dawn", tag:"Spiritual Forge, Peterson & World Intel", tasks:[
+      ["Bible study, then read a commentary", "Bible study + apologetics. Read the text, then a commentary.", "05:15 AM · The Spiritual Forge"],
+      ["Read 5–10 pages of Peterson, out loud", "Deep reading (12 Rules for Life / Beyond Order). Finish 5\u201310 pages. Read Peterson\u2019s text out loud: it trains your vocal cords for complex sentence structures and advanced vocabulary. Study the references too: when he mentions Solzhenitsyn or Nietzsche, plan 15 minutes on that historical era for your jog.", "06:00 AM · The Peterson Block"],
+      ["Commute: listen to a news podcast in English", "Commute: listen to The Daily or WSJ What\u2019s News in English. Take one world event and analyze it through a Biblical/apologetic lens. For example, if there is a conflict in the news, how does the Problem of Evil apply, and how would you defend your faith in that context?", "06:30 AM · World Intel"]
+    ]},
+    { id:"xw", name:"Office & Training", tag:"Professionalism & the Physical Forge", tasks:[
+      ["Speak only high-level English in work meetings", "Professionalism. Speak only high-level English in all meetings.", "07:00 AM · The Office"],
+      ["Gym + 30 min Zone 2 jog while listening to a lecture", "Gym + 30 minutes of Zone 2 jog. Listen to history or science lectures, including a 15-minute summary of the era behind whatever you read in Peterson that morning.", "04:00 PM · The Physical Forge"]
+    ]},
+    { id:"xe", name:"Evening Craft", tag:"Cooking, Guitar & Editing", tasks:[
+      ["Cook while doing mental-math drills", "Cooking + math drills. Practice mental math while you prep food: multiplication and division in your head, and calculate the macro ratios (protein, carb, fat) of your meal as you weigh the ingredients.", "06:00 PM · Logistics & Skill"],
+      ["Guitar: one scale, every inversion, eyes off your hands", "Guitar, Govan style: fretboard visualization and modal theory. Take one scale (e.g. Lydian) and find every inversion across all strings without looking at your hands. Mastery isn\u2019t just speed; it\u2019s complete fretboard visualization.", "07:30 PM · The Virtuoso"],
+      ["Edit video, applying order vs. chaos to your cuts", "Video editing. Apply Peterson\u2019s idea of order versus chaos to your cuts.", "08:30 PM · Digital Forensics"]
+    ]},
+    { id:"xn", name:"Night Watch", tag:"Walk, Log & Sleep", tasks:[
+      ["Walk the dog, narrating world events aloud in English", "Dog walk. Narrate world events out loud in English.", "09:30 PM · The Night Watch"],
+      ["Log today’s progress, then sleep", "Log your progress. Sleep is for neuroplasticity.", "10:15 PM · System Shutdown"]
+    ]},
+    { id:"xk", weekly:true, name:"Weekly", tag:"Shown every day \u00B7 not counted in Today", tasks:[
+      ["Sat 1–4 PM: learn one hard skill (First Aid, electronics, color grading)", "Learn a hard skill like First Aid, basic electronics (repairing your guitar cables), or advanced color grading in Premiere.", "Weekly · Hard Skill"],
+      ["Sun 8 PM–12 AM: play the gig, use this week’s drills", "Use the gig as the proving ground: apply the technical drills you practiced during the week.", "Weekly · Gig as Final Boss"],
+      ["Mon: sleep until 6:15 AM at most, narrate your commute in English", "Your Sunday gig runs until midnight, so Monday is your most vulnerable day. You may sleep until 6:15 AM, but narrate your commute in English to wake up your brain. Don\u2019t let the gig hangover break your momentum.", "Weekly · Monday Reset"],
+      ["Sun check: can I explain a Peterson idea in clear English?", "Can I explain a Peterson concept in clear English?", "Weekly · Scorecard · Logic"],
+      ["Sun check: can I play a chord progression in 3 positions?", "Can I play a chord progression in 3 different positions?", "Weekly · Scorecard · Music"],
+      ["Sun check: can I double-digit multiply faster than last week?", "Can I double-digit multiply faster than last week?", "Weekly · Scorecard · Math"]
+    ]}
+  ];
+
+  var SCORE = [
+    ["Morning", "Hydrate + 15m Sunlight + Quiet Prayer", "Unhurried internal pace, spiritual groundedness"],
+    ["Morning", "High-protein meal + Minimalist, sharp grooming", "Effortless self-respect, metabolic stability"],
+    ["Daytime", "Uninterrupted practice & deep work (no bragging)", "Quiet authority, genuine competence"],
+    ["Daytime", "Compound lifting / Zone 2 + Vocal economy", "Physical presence, resonant voice, low neediness"],
+    ["Evening / Gig", "Still body language, deep listening & venue respect", "Magnetic composure, emotional safety, Fifth Gospel witness"],
+    ["Night", "Physiological sighs + Screen cutoff + Surrender", "Rapid recovery, deep sleep, unshakeable calm"],
+    ["Pillar: Vitality", "V-taper training + skin, jaw & hair care + posture", "Strength, immune health, hormonal balance, calm confidence"],
+    ["Pillar: Presence", "Chest voice + steady eye contact + unreactive composure", "Calm dominance, maturity, stress resilience"],
+    ["Pillar: Drive", "Mastery + goal momentum + respect for everyone", "Discipline, purpose, high social intelligence"],
+    ["Pillar: Polarity", "Clear intent + playful humor + safety with edge", "Sexual tension, trust, excitement"],
+    ["Pillar: Style", "Well-fitted clothes + hygiene and subtle scent", "Intentional, well-kept, attractive chemistry cues"]
+  ];
+
+  var LIFE = [
+    { id:"m", name:"Morning", word:"maxxing", tasks:["Up before 7","Sunlight first thing","Water before coffee","Make your bed","No phone for the first hour","Walk before work","Write 3 goals for the day","Coffee 90 mins after waking"] },
+    { id:"n", name:"Nutrition", word:"dialling", tasks:["Mostly whole foods","Cook at home","Fruit every day","Greek yoghurt","Potatoes over pastries","Salmon twice a week","3L of water","Dark choc, not lollies"] },
+    { id:"p", name:"Physique", word:"building", tasks:["Lift 4 times a week","Add weight every week","Protein every meal","10k steps a day","Creatine daily","Never skip legs","Track every lift","Sauna after training"] },
+    { id:"r", name:"Recovery", word:"prioritising", tasks:["Sauna twice a week","Ice bath on rest days","Magnesium before bed","Electrolytes daily","Same bedtime every night","Walk on rest days","Protein after training","Watch the sunset"] },
+    { id:"k", name:"Mindset", word:"upgrading", tasks:["Read 10 pages a day","Do hard things on purpose","Choose your circle","Travel more","Track your progress","Keep promises to yourself","Less scrolling, more doing","Slow mornings, fast results"] }
+  ];
+
+  var state = { day:"", checks:{}, custom:[], banner:{ collapsed:false, dismissed:false } };
+  var fresh = [], openBlocks = { mo:true }, openLife = {}, openDesc = {};
+  var $ = function (id) { return document.getElementById(id); };
+  function pad(n) { return (n < 10 ? "0" : "") + n; }
+  function today() { var d = new Date(); return d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate()); }
+  function el(tag, cls, txt) { var e = document.createElement(tag); if (cls) e.className = cls; if (txt != null) e.textContent = txt; return e; }
+
+  function load() {
+    try {
+      var s = localStorage.getItem(KEY);
+      if (s) { var p = JSON.parse(s); if (p) state = p; }
+      else { var o = localStorage.getItem(OLD); if (o) state.custom = JSON.parse(o) || []; }
+    } catch (e) {}
+    if (!state.checks) state.checks = {};
+    if (!state.custom) state.custom = [];
+    if (!state.banner) state.banner = { collapsed:false, dismissed:false };
+    if (state.day !== today()) { state.day = today(); state.checks = {}; save(); }
+  }
+  var dbDoc = null, writing = false, again = false, pushTimer = null;
+  function setSync(t) { var e = $("sync"); if (e) e.textContent = t; }
+  function save() {
+    state.ts = Date.now();
+    try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) {}
+    queuePush();
+  }
+  function queuePush() {
+    if (!dbDoc) return;
+    setSync("Saving\u2026");
+    clearTimeout(pushTimer);
+    pushTimer = setTimeout(push, 400);
+  }
+  function push() {
+    if (!dbDoc) return;
+    if (writing) { again = true; return; }
+    writing = true;
+    var snap = JSON.parse(JSON.stringify(state));
+    dbDoc.set(snap).then(function () { setSync("Saved to your account"); }, function () { setSync("Not synced \u2014 saved on this device only"); })
+      .then(function () { writing = false; if (again) { again = false; push(); } });
+  }
+  function initSync() {
+    setSync("Saved on this device only");
+    if (!window.claude || !window.claude.use) return;
+    Promise.all([window.claude.use("user"), window.claude.use("db")]).then(function (r) {
+      var user = r[0], db = r[1];
+      if (!user || !db) return null;
+      return user.id().then(function (id) {
+        if (!id) return null;
+        dbDoc = db.collection("data/users/" + id).doc("state");
+        var timer = new Promise(function (res) { setTimeout(function () { res("timeout"); }, 10000); });
+        return Promise.race([dbDoc.get(), timer]);
+      });
+    }).then(function (snap) {
+      if (!dbDoc) return;
+      if (snap === "timeout" || !snap) { setSync("Could not reach your account \u2014 saved on this device only"); dbDoc = null; return; }
+      var remote = snap.exists ? snap.data() : null;
+      if (remote && (remote.ts || 0) > (state.ts || 0)) {
+        state = remote;
+        if (!state.checks) state.checks = {};
+        if (!state.custom) state.custom = [];
+        if (!state.banner) state.banner = { collapsed:false, dismissed:false };
+        if (state.day !== today()) { state.day = today(); state.checks = {}; }
+        try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) {}
+        renderBanner(); renderBlocks(); renderLife(); updateCounts(); renderCustom();
+        setSync("Saved to your account");
+        if (state.day === today() && remote.day !== today()) { state.ts = Date.now(); push(); }
+      } else {
+        state.ts = state.ts || Date.now();
+        push();
+      }
+    }).catch(function () { dbDoc = null; setSync("Saved on this device only"); });
+  }
+  function say(t) { $("msg").textContent = t; if (t) setTimeout(function () { if ($("msg").textContent === t) $("msg").textContent = ""; }, 2500); }
+
+  /* ---------- banner ---------- */
+  function renderBanner() {
+    var b = state.banner;
+    $("banner").hidden = !!b.dismissed;
+    $("bnShow").hidden = !b.dismissed;
+    $("bnQuote").hidden = !!b.collapsed;
+    document.querySelector("#banner .st").hidden = !!b.collapsed;
+    $("bnCollapse").textContent = b.collapsed ? "+" : "–";
+    $("bnCollapse").setAttribute("aria-label", b.collapsed ? "Expand" : "Collapse");
+  }
+  $("bnQuote").textContent = QUOTE;
+  $("pq").textContent = PILLARS_QUOTE;
+  $("pq2").textContent = PROTOCOL_NOTE;
+  $("bnCollapse").addEventListener("click", function () { state.banner.collapsed = !state.banner.collapsed; save(); renderBanner(); });
+  $("bnDismiss").addEventListener("click", function () { state.banner.dismissed = true; save(); renderBanner(); });
+  $("bnShow").addEventListener("click", function () { state.banner.dismissed = false; state.banner.collapsed = false; save(); renderBanner(); });
+
+  /* ---------- time blocks ---------- */
+  var refs = {};
+  function renderBlocks() { refs = {}; renderList($("blocks"), BLOCKS); renderList($("pillars"), PILLARS); renderList($("protocol"), PROTOCOL); }
+  function renderList(root, list) {
+    root.textContent = "";
+    list.forEach(function (bl, bi) {
+      var d = el("details"); if (bi === list.length - 1) d.className = "last";
+      if (openBlocks[bl.id]) d.open = true;
+      d.addEventListener("toggle", function () { openBlocks[bl.id] = d.open; });
+      var sm = el("summary");
+      var tt = el("span", "tt");
+      tt.appendChild(el("span", "ttl", bl.name));
+      tt.appendChild(el("span", "tag", bl.tag));
+      var cnt = el("span", "cnt");
+      sm.appendChild(el("span", "no", pad(bi + 1))); sm.appendChild(tt); sm.appendChild(cnt); sm.appendChild(el("span", "chev", "›"));
+      d.appendChild(sm);
+      var mini = el("div", "mini"); var fill = el("i"); mini.appendChild(fill); d.appendChild(mini);
+      var ul = el("ul");
+      bl.tasks.forEach(function (tk, ti) {
+        var key = bl.id + ti, on = !!state.checks[key];
+        var li = el("li"); if (on) li.className = "done"; if (openDesc[key]) li.classList.add("open");
+        var cb = el("input", "box"); cb.type = "checkbox"; cb.checked = on; cb.setAttribute("aria-label", "Mark done");
+        cb.addEventListener("change", function () {
+          if (cb.checked) state.checks[key] = 1; else delete state.checks[key];
+          save(); li.classList.toggle("done", cb.checked); updateCounts();
+        });
+        var body = el("div", "body");
+        var tb = el("button", "tbtn"); tb.type = "button"; tb.setAttribute("aria-expanded", openDesc[key] ? "true" : "false");
+        tb.appendChild(el("span", "t", tk[0]));
+        var pm = el("span", "pm", openDesc[key] ? "–" : "+"); tb.appendChild(pm);
+        tb.addEventListener("click", function () {
+          var o = li.classList.toggle("open"); openDesc[key] = o;
+          pm.textContent = o ? "–" : "+"; tb.setAttribute("aria-expanded", o ? "true" : "false");
+        });
+        if (tk[2]) body.appendChild(el("div", "kick", tk[2]));
+        body.appendChild(tb); body.appendChild(el("div", "desc", tk[1]));
+        li.appendChild(cb); li.appendChild(body); ul.appendChild(li);
+      });
+      d.appendChild(ul); root.appendChild(d);
+      refs[bl.id] = { cnt:cnt, fill:fill };
+    });
+  }
+
+  /* ---------- lifestyle ---------- */
+  var lifeRefs = [];
+  function renderLife() {
+    var root = $("life"); root.textContent = ""; lifeRefs = [];
+    LIFE.forEach(function (sec, si) {
+      var d = el("details"); if (si === LIFE.length - 1) d.className = "last";
+      if (openLife[sec.id]) d.open = true;
+      d.addEventListener("toggle", function () { openLife[sec.id] = d.open; });
+      var sm = el("summary");
+      var tt = el("span", "tt"); var ttl = el("span", "ttl", sec.name + " ");
+      ttl.style.fontSize = "17px"; ttl.appendChild(el("em", null, sec.word)); tt.appendChild(ttl);
+      var cnt = el("span", "cnt");
+      sm.appendChild(el("span", "no", pad(si + 1))); sm.appendChild(tt); sm.appendChild(cnt); sm.appendChild(el("span", "chev", "›"));
+      d.appendChild(sm);
+      var ul = el("ul");
+      sec.tasks.forEach(function (txt, ti) {
+        var key = sec.id + ti, on = !!state.checks[key];
+        var li = el("li"); if (on) li.className = "done";
+        var cb = el("input", "box"); cb.type = "checkbox"; cb.checked = on;
+        cb.addEventListener("change", function () {
+          if (cb.checked) state.checks[key] = 1; else delete state.checks[key];
+          save(); li.classList.toggle("done", cb.checked); updateCounts();
+        });
+        var body = el("div", "body"); body.appendChild(el("span", "t", txt));
+        li.appendChild(cb); li.appendChild(body); ul.appendChild(li);
+      });
+      d.appendChild(ul); root.appendChild(d); lifeRefs.push(cnt);
+    });
+  }
+
+  function updateCounts() {
+    var total = 0, done = 0;
+    BLOCKS.concat(PILLARS, PROTOCOL).forEach(function (bl) {
+      var sd = 0; bl.tasks.forEach(function (_, ti) { if (state.checks[bl.id + ti]) sd++; });
+      if (!bl.weekly) { total += bl.tasks.length; done += sd; }
+      var r = refs[bl.id];
+      if (r) { r.cnt.textContent = sd + "/" + bl.tasks.length; r.cnt.className = "cnt" + (sd === bl.tasks.length ? " full" : ""); r.fill.style.width = (sd / bl.tasks.length * 100) + "%"; }
+    });
+    $("today").textContent = pad(done) + " / " + pad(total);
+    $("barFill").style.width = (total ? done / total * 100 : 0) + "%";
+    LIFE.forEach(function (sec, si) {
+      var sd = 0; sec.tasks.forEach(function (_, ti) { if (state.checks[sec.id + ti]) sd++; });
+      var c = lifeRefs[si]; if (c) { c.textContent = sd + "/" + sec.tasks.length; c.className = "cnt" + (sd === sec.tasks.length ? " full" : ""); }
+    });
+  }
+
+  /* ---------- reset day (two taps) ---------- */
+  var resetTimer = null;
+  $("resetBtn").addEventListener("click", function () {
+    var b = $("resetBtn");
+    if (!b.classList.contains("warn")) {
+      b.classList.add("warn"); b.textContent = "Tap again to confirm";
+      resetTimer = setTimeout(function () { b.classList.remove("warn"); b.textContent = "Reset day"; }, 3000);
+      return;
+    }
+    clearTimeout(resetTimer); b.classList.remove("warn"); b.textContent = "Reset day";
+    state.checks = {}; save(); renderBlocks(); renderLife(); updateCounts();
+  });
+
+  /* ---------- scorecard modal ---------- */
+  (function () {
+    var tb = $("scBody");
+    SCORE.forEach(function (r) {
+      var tr = el("tr"); r.forEach(function (c) { tr.appendChild(el("td", null, c)); }); tb.appendChild(tr);
+    });
+  })();
+  function openScore() { $("overlay").hidden = false; document.body.style.overflow = "hidden"; $("scClose").focus(); }
+  function closeScore() { $("overlay").hidden = true; document.body.style.overflow = ""; }
+  $("scoreBtn").addEventListener("click", openScore);
+  $("scClose").addEventListener("click", closeScore);
+  $("overlay").addEventListener("click", function (e) { if (e.target === $("overlay")) closeScore(); });
+  document.addEventListener("keydown", function (e) { if (e.key === "Escape" && !$("overlay").hidden) closeScore(); });
+
+  /* ---------- tabs ---------- */
+  function showTab(r) {
+    $("panelR").hidden = !r; $("panelT").hidden = r;
+    $("tabR").setAttribute("aria-selected", r ? "true" : "false");
+    $("tabT").setAttribute("aria-selected", r ? "false" : "true");
+  }
+  $("tabR").addEventListener("click", function () { showTab(true); });
+  $("tabT").addEventListener("click", function () { showTab(false); });
+
+  /* ---------- my tasks ---------- */
+  function renderCustom() {
+    var items = state.custom, ul = $("list"); ul.textContent = "";
+    var open = items.filter(function (it) { return !it.done; }).length;
+    $("count").textContent = pad(open) + " OPEN / " + pad(items.length) + " TOTAL";
+    $("empty").style.display = items.length ? "none" : "";
+    ul.style.display = items.length ? "" : "none";
+    items.forEach(function (it, i) {
+      var li = el("li"); if (it.done) li.className = "done"; if (fresh.indexOf(it) !== -1) li.className += " enter";
+      var cb = el("input", "box"); cb.type = "checkbox"; cb.checked = !!it.done; cb.setAttribute("aria-label", "Mark done");
+      cb.addEventListener("change", function () { it.done = cb.checked; save(); renderCustom(); });
+      var x = el("button", "x", "×"); x.type = "button"; x.setAttribute("aria-label", "Delete");
+      x.addEventListener("click", function () { items.splice(i, 1); save(); renderCustom(); });
+      li.appendChild(el("span", "n", pad(items.length - i))); li.appendChild(cb); li.appendChild(el("span", "t", it.text)); li.lastChild.style.flex = "1"; li.appendChild(x);
+      ul.appendChild(li);
+    });
+    fresh = [];
+  }
+  function addText(t) {
+    t = (t || "").trim(); if (!t) return false;
+    var it = { text:t, done:false }; state.custom.unshift(it); fresh.push(it); return true;
+  }
+  $("add").addEventListener("click", function () { if (addText($("text").value)) { $("text").value = ""; save(); renderCustom(); } });
+  $("addLines").addEventListener("click", function () {
+    var parts = $("text").value.split(/\n+/), n = 0;
+    for (var i = parts.length - 1; i >= 0; i--) if (addText(parts[i])) n++;
+    if (n) { $("text").value = ""; save(); renderCustom(); say(n + " logged"); }
+  });
+  $("clear").addEventListener("click", function () { state.custom = state.custom.filter(function (it) { return !it.done; }); save(); renderCustom(); });
+  $("copy").addEventListener("click", function () {
+    var t = state.custom.map(function (it) { return (it.done ? "[x] " : "[ ] ") + it.text; }).join("\n");
+    try { navigator.clipboard.writeText(t).then(function () { say("Copied"); }, function () { say("Copy blocked"); }); } catch (e) { say("Copy blocked"); }
+  });
+
+  function dateLine() {
+    try { $("dateLine").textContent = new Date().toLocaleDateString(undefined, { weekday:"long", day:"numeric", month:"long" }); } catch (e) {}
+  }
+  document.addEventListener("visibilitychange", function () {
+    if (!document.hidden && state.day !== today()) { state.day = today(); state.checks = {}; save(); dateLine(); renderBlocks(); renderLife(); updateCounts(); }
+  });
+
+  /* optional in-page mic (only where the viewer's browser provides it) */
+  try {
+    if (window.claude && window.claude.use) {
+      window.claude.use("dictation").then(function (d) {
+        if (!d) return;
+        var mic = $("mic"), base = ""; mic.style.display = "inline-flex";
+        d.onPartial(function (p) { $("text").value = base + p.text; });
+        d.onFinal(function (p) { base = base + p.text + " "; $("text").value = base; });
+        d.onState(function (s) { mic.classList.toggle("on", s.state === "listening"); $("micTxt").textContent = s.state === "listening" ? "Stop" : "Dictate"; });
+        mic.addEventListener("click", function () {
+          if (mic.classList.contains("on")) { d.stop(); return; }
+          base = $("text").value ? $("text").value + " " : "";
+          d.start().catch(function () { say("Mic not allowed. Use keyboard mic"); });
+        });
+      }).catch(function () {});
+    }
+  } catch (e) {}
+
+  load(); dateLine(); renderBanner(); renderBlocks(); renderLife(); updateCounts(); renderCustom(); initSync();
+})();
+</script>
+<script>
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", function () { navigator.serviceWorker.register("sw.js").catch(function () {}); });
+}
+</script>
+</body>
+</html>
