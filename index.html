@@ -96,6 +96,9 @@
   @keyframes fade { from { opacity:0; transform:translateY(-4px); } to { opacity:1; transform:none; } }
 
   .kick { font:400 9px var(--mono); letter-spacing:.22em; text-transform:uppercase; color:var(--gold); margin-bottom:3px; }
+  .sheet textarea.bk { border:1px solid var(--line); background:var(--panel); min-height:190px; font:300 12px/1.5 var(--mono); margin:0 0 12px; padding:10px; display:block; }
+  .sheet .note { color:#a59e8f; font-size:13px; line-height:1.6; margin:4px 0 12px; }
+  .sheet .bkact { display:flex; gap:10px; justify-content:flex-end; }
   .group { margin:46px 0 10px; }
   .pq { margin:0 0 14px; padding-left:14px; border-left:1px solid var(--gold); color:#b9b2a2; font-size:13px; line-height:1.6; }
 
@@ -126,7 +129,8 @@
   @keyframes glow { 0% { color:var(--gold-hi); text-shadow:0 0 14px rgba(230,195,112,.6); } 100% { color:var(--ink); text-shadow:none; } }
   @keyframes sweep { from { width:0; opacity:1; } to { width:100%; opacity:0; } }
   .empty { color:var(--mute); text-align:center; padding:34px 0; font:400 16px var(--serif); border-bottom:1px solid var(--line); border-top:1px solid var(--line); }
-  .tools { display:flex; gap:10px; margin-top:20px; }
+  .tools { display:flex; gap:10px; margin-top:12px; flex-wrap:wrap; }
+  #panelT .tools:first-of-type { margin-top:20px; }
   #msg { color:var(--gold); font:300 11px var(--mono); letter-spacing:.2em; text-transform:uppercase; min-height:18px; margin-top:14px; }
 
   /* scorecard modal */
@@ -225,9 +229,26 @@
       <button class="ghost" id="clear" type="button">Clear done</button>
       <button class="ghost" id="copy" type="button">Copy all</button>
     </div>
+    <div class="tools">
+      <button class="ghost" id="backup" type="button">Back up</button>
+      <button class="ghost" id="restore" type="button">Restore</button>
+    </div>
     <div id="msg"></div>
   </section>
+  <div class="label" style="margin-top:40px;text-align:center;opacity:.6">Refocus To-Do · v2</div>
 </main>
+
+<div class="overlay" id="bkOverlay" hidden>
+  <div class="sheet" role="dialog" aria-modal="true" aria-label="Back up and restore">
+    <div class="hd"><span class="label" id="bkLabel">Back up</span><button class="icon" id="bkClose" type="button" aria-label="Close">×</button></div>
+    <p class="note" id="bkNote"></p>
+    <textarea class="bk" id="bkText" spellcheck="false" autocapitalize="off" autocorrect="off"></textarea>
+    <div class="bkact">
+      <button class="ghost" id="bkCopy" type="button">Copy</button>
+      <button class="primary" id="bkGo" type="button">Restore</button>
+    </div>
+  </div>
+</div>
 
 <div class="overlay" id="overlay" hidden>
   <div class="sheet" role="dialog" aria-modal="true" aria-label="Scorecard">
@@ -596,6 +617,53 @@
     var t = state.custom.map(function (it) { return (it.done ? "[x] " : "[ ] ") + it.text; }).join("\n");
     try { navigator.clipboard.writeText(t).then(function () { say("Copied"); }, function () { say("Copy blocked"); }); } catch (e) { say("Copy blocked"); }
   });
+
+  /* ---------- back up / restore ---------- */
+  function renderAll() { renderBanner(); renderBlocks(); renderLife(); updateCounts(); renderCustom(); }
+  function makeBackup() {
+    return "REFOCUS-BACKUP v1\n" + JSON.stringify({ app:"refocus-todo", v:1, exportedAt:new Date().toISOString(), state:state });
+  }
+  function showBk(mode, text) {
+    var rs = mode === "restore";
+    $("bkLabel").textContent = rs ? "Restore" : "Back up";
+    $("bkNote").textContent = rs
+      ? "Paste your backup text below, then tap Restore. This replaces your current tasks."
+      : "Couldn\u2019t copy automatically. Tap the text, select all, copy it, and paste it into Notes.";
+    $("bkText").value = rs ? "" : text;
+    $("bkText").readOnly = !rs;
+    $("bkGo").hidden = !rs;
+    $("bkCopy").hidden = rs;
+    $("bkOverlay").hidden = false;
+    document.body.style.overflow = "hidden";
+    if (rs) $("bkText").focus();
+  }
+  function closeBk() { $("bkOverlay").hidden = true; document.body.style.overflow = ""; }
+  $("backup").addEventListener("click", function () {
+    var t = makeBackup();
+    try {
+      navigator.clipboard.writeText(t).then(function () { say("Backup copied \u2014 paste it into Notes"); }, function () { showBk("backup", t); });
+    } catch (e) { showBk("backup", t); }
+  });
+  $("restore").addEventListener("click", function () { showBk("restore"); });
+  $("bkClose").addEventListener("click", closeBk);
+  $("bkOverlay").addEventListener("click", function (e) { if (e.target === $("bkOverlay")) closeBk(); });
+  $("bkCopy").addEventListener("click", function () {
+    var ta = $("bkText"); ta.focus(); ta.select();
+    try { navigator.clipboard.writeText(ta.value).then(function () { $("bkNote").textContent = "Copied."; }, function () {}); } catch (e) {}
+  });
+  $("bkGo").addEventListener("click", function () {
+    var raw = $("bkText").value, i = raw.indexOf("{"), j = raw.lastIndexOf("}"), o = null;
+    if (i >= 0 && j > i) { try { o = JSON.parse(raw.slice(i, j + 1)); } catch (e) { o = null; } }
+    var st = o && o.state;
+    if (!st || !Array.isArray(st.custom)) { $("bkNote").textContent = "That doesn\u2019t look like a Refocus backup. Paste the full text and try again."; return; }
+    state.custom = st.custom.filter(function (x) { return x && typeof x.text === "string" && x.text.trim(); })
+      .map(function (x) { return { text: x.text.slice(0, 500), done: !!x.done }; });
+    if (st.day === today() && st.checks && typeof st.checks === "object") state.checks = st.checks;
+    if (st.banner && typeof st.banner === "object") state.banner = { collapsed: !!st.banner.collapsed, dismissed: !!st.banner.dismissed };
+    save(); renderAll(); closeBk();
+    say("Restored " + state.custom.length + " tasks");
+  });
+  document.addEventListener("keydown", function (e) { if (e.key === "Escape" && !$("bkOverlay").hidden) closeBk(); });
 
   function dateLine() {
     try { $("dateLine").textContent = new Date().toLocaleDateString(undefined, { weekday:"long", day:"numeric", month:"long" }); } catch (e) {}

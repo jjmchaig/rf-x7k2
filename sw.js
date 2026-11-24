@@ -1,4 +1,4 @@
-const CACHE = "refocus-todo-v1";
+const CACHE = "refocus-todo-v2";
 const CORE = ["./", "./index.html", "./manifest.webmanifest", "./Brigends-Expanded.otf", "./icon-192.png", "./icon-512.png", "./apple-touch-icon.png"];
 
 self.addEventListener("install", (e) => {
@@ -12,7 +12,8 @@ self.addEventListener("activate", (e) => {
   );
 });
 
-// Stale-while-revalidate: open instantly from cache, refresh in the background.
+// Network first: when you are online you always get the newest files.
+// When offline, the saved copy is used.
 self.addEventListener("fetch", (e) => {
   const req = e.request;
   if (req.method !== "GET") return;
@@ -20,13 +21,12 @@ self.addEventListener("fetch", (e) => {
   const ok = url.origin === location.origin || url.hostname === "fonts.googleapis.com" || url.hostname === "fonts.gstatic.com";
   if (!ok) return;
   e.respondWith(
-    caches.open(CACHE).then(async (cache) => {
-      const cached = await cache.match(req, { ignoreSearch: true });
-      const net = fetch(req).then((res) => {
-        if (res && (res.status === 200 || res.type === "opaque")) cache.put(req, res.clone());
-        return res;
-      }).catch(() => cached || (req.mode === "navigate" ? cache.match("./index.html") : undefined));
-      return cached || net;
-    })
+    fetch(req).then((res) => {
+      if (res && (res.status === 200 || res.type === "opaque")) {
+        const copy = res.clone();
+        caches.open(CACHE).then((c) => c.put(req, copy));
+      }
+      return res;
+    }).catch(() => caches.match(req, { ignoreSearch: true }).then((hit) => hit || (req.mode === "navigate" ? caches.match("./index.html") : undefined)))
   );
 });
