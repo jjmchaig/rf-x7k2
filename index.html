@@ -235,7 +235,7 @@
     </div>
     <div id="msg"></div>
   </section>
-  <div class="label" style="margin-top:40px;text-align:center;opacity:.6">Refocus To-Do · v2</div>
+  <div class="label" style="margin-top:40px;text-align:center;opacity:.6">Refocus To-Do · v3</div>
 </main>
 
 <div class="overlay" id="bkOverlay" hidden>
@@ -668,9 +668,12 @@
   function dateLine() {
     try { $("dateLine").textContent = new Date().toLocaleDateString(undefined, { weekday:"long", day:"numeric", month:"long" }); } catch (e) {}
   }
-  document.addEventListener("visibilitychange", function () {
-    if (!document.hidden && state.day !== today()) { state.day = today(); state.checks = {}; save(); dateLine(); renderBlocks(); renderLife(); updateCounts(); }
-  });
+  function newDayCheck() {
+    if (state.day !== today()) { state.day = today(); state.checks = {}; save(); dateLine(); renderBlocks(); renderLife(); updateCounts(); }
+    else dateLine();
+  }
+  document.addEventListener("visibilitychange", function () { if (!document.hidden) newDayCheck(); });
+  setInterval(newDayCheck, 60000);
 
   /* optional in-page mic (only where the viewer's browser provides it) */
   try {

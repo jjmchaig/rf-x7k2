@@ -1,4 +1,4 @@
-const CACHE = "refocus-todo-v2";
+const CACHE = "refocus-todo-v3";
 const CORE = ["./", "./index.html", "./manifest.webmanifest", "./Brigends-Expanded.otf", "./icon-192.png", "./icon-512.png", "./apple-touch-icon.png"];
 
 self.addEventListener("install", (e) => {
