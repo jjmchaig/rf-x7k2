@@ -199,6 +199,10 @@
     <blockquote class="pq" id="pq"></blockquote>
     <div id="pillars"></div>
 
+    <div class="group"><span class="label">Character &amp; presence habits</span></div>
+    <blockquote class="pq" id="pq3"></blockquote>
+    <div id="habits"></div>
+
     <div class="group"><span class="label">Polymath daily protocol · 7 AM start</span></div>
     <blockquote class="pq" id="pq2"></blockquote>
     <div id="protocol"></div>
@@ -235,7 +239,7 @@
     </div>
     <div id="msg"></div>
   </section>
-  <div class="label" style="margin-top:40px;text-align:center;opacity:.6">Refocus To-Do · v4</div>
+  <div class="label" style="margin-top:40px;text-align:center;opacity:.6">Refocus To-Do · v5</div>
 </main>
 
 <div class="overlay" id="bkOverlay" hidden>
@@ -347,6 +351,49 @@
     ]}
   ];
 
+  var HABITS_NOTE = "Genuine strength and generosity, not people-pleasing: warm and kind without being a “nice guy”.";
+  var HABITS = [
+    { id:"gl", name:"Grounded Leadership", tag:"Warmth & Boundaries · kind, not a “nice guy”", tasks:[
+      ["Give without covert contracts", "Offer help, warmth, or generosity freely because it aligns with your character—never to subtly earn approval, affection, or a specific reaction in return.", "Leadership"],
+      ["Say “no” cleanly, without over-explaining", "Decline requests or protect your time with a calm, direct “I can’t make that work” rather than inventing excuses or apologizing excessively.", "Leadership"],
+      ["State your preferences directly", "When asked where to eat, what you think, or what you want, give a clear, decisive answer instead of defaulting to “whatever you want” to keep the peace.", "Leadership"],
+      ["Hold boundaries calmly, without anger", "Correct disrespect or cross-line behavior calmly and early, without blowing up or holding silent resentment.", "Leadership"],
+      ["Be the calmest person in the room", "When plans change, tech fails at a gig, or stress spikes at work, anchor the room with steady problem-solving rather than panic or blame.", "Leadership"],
+      ["Offer warm, genuine acknowledgment", "Greet people by name, give sincere, specific compliments without flattery, and make others feel valued without putting yourself beneath them.", "Leadership"],
+      ["Follow through on every commitment", "Keep your word on small things as strictly as big things so people know they can rely on you without second-guessing.", "Leadership"]
+    ]},
+    { id:"of", name:"Offline Habits", tag:"Presence & Character", tasks:[
+      ["Practice vocal economy & active listening", "Speak concisely, let silences breathe, and listen fully without interrupting or steering conversations back to yourself.", "Offline"],
+      ["Maintain emotional regulation", "Respond calmly under pressure rather than reacting impulsively to stress, gossip, or disrespect.", "Offline"],
+      ["Execute unannounced discipline", "Stay consistent with your craft, workouts, and personal standards without broadcasting your daily grind.", "Offline"],
+      ["Keep a selective inner circle", "Treat everyone with consistent warmth and respect, while reserving deep trust and free time for a small, proven circle.", "Offline"],
+      ["Lean into solitude", "Enjoy your own company and solo pursuits so you never chase validation or linger where you aren’t valued.", "Offline"],
+      ["Keep presentation intentional", "Maintain clean grooming, strong posture, and understated, well-fitted clothing without flashy peacocking.", "Offline"]
+    ]},
+    { id:"bv", name:"Bodily & Vocal", tag:"Conscious Bodily & Vocal Habits", tasks:[
+      ["Stand up straight, shoulders back", "Adopt an upright, open posture—standing tall with shoulders back rather than slumping or caving inward—to signal steadiness and presence.", "Body & voice"],
+      ["Keep a calm, positive facial expression", "Relax the brow and jaw with a subtle, approachable ease rather than looking tense, guarded, or visibly drained.", "Body & voice"],
+      ["Speak with a deep, unexcited voice", "Drop your breath into your diaphragm, relax your throat, and keep your pace measured and even—avoiding rushing, high-pitched strain, or overly dramatic inflection.", "Body & voice"],
+      ["Move with unhurried deliberation", "Walk, sit, and set things down cleanly without fidgeting, tapping, or jerky, anxious movements.", "Body & voice"],
+      ["Hold steady, relaxed eye contact", "Maintain calm, non-staring eye contact when listening or speaking, letting your attention stay grounded without looking away nervously.", "Body & voice"],
+      ["Check jaw and shoulder tension", "Periodically drop your shoulders and unclench your jaw during work, conversations, or quiet moments so physical stiffness doesn’t feed mental agitation.", "Body & voice"]
+    ]},
+    { id:"on", name:"Online Habits", tag:"Digital Restraint", tasks:[
+      ["Post only finished or intentional work", "Share completed projects, clean visuals, or music rather than everyday moments or work-in-progress routines.", "Online"],
+      ["Cut out daily filler", "Skip routine check-ins, workouts, meals, or random “just because” updates.", "Online"],
+      ["Keep captions short and plain", "Let the image, video, or track stand on its own without long explanations or asking for engagement.", "Online"],
+      ["Sit on a post before publishing", "Wait a few hours—or until the next day—to make sure you’re sharing because the post is genuinely good, not because you want a quick hit of attention.", "Online"],
+      ["Keep your inner life offline", "Never use vague statuses, cryptic quotes, or story updates to vent frustration, process heartbreak, or send indirect messages.", "Online"],
+      ["Avoid public comment debates", "Keep disagreements and opinions out of comment sections and threads.", "Online"],
+      ["Delay location and company tags", "Avoid posting real-time locations or announcing who you’re with while you’re still there.", "Online"],
+      ["Keep your bio clean and minimal", "Stick to the basics rather than stacking titles, moods, or life updates.", "Online"],
+      ["Turn off non-essential push notifications", "Stop letting app alerts dictate your attention throughout the day.", "Online"],
+      ["Batch your scrolling and replies", "Check feeds and answer DMs at set times when you actually have mental bandwidth instead of reacting in real time.", "Online"],
+      ["Skip reflex story reactions and likes", "Don’t tap through stories just to stay visible or keep track of someone’s day.", "Online"],
+      ["Protect your offline time", "Keep your workouts, practice sessions, gigs, and quiet evenings off your feed so your real life stays yours.", "Online"]
+    ]}
+  ];
+
   var SCORE = [
     ["Morning", "Hydrate + 15m Sunlight + Quiet Prayer", "Unhurried internal pace, spiritual groundedness"],
     ["Morning", "High-protein meal + Minimalist, sharp grooming", "Effortless self-respect, metabolic stability"],
@@ -455,13 +502,14 @@
   $("bnQuote").textContent = QUOTE;
   $("pq").textContent = PILLARS_QUOTE;
   $("pq2").textContent = PROTOCOL_NOTE;
+  $("pq3").textContent = HABITS_NOTE;
   $("bnCollapse").addEventListener("click", function () { state.banner.collapsed = !state.banner.collapsed; save(); renderBanner(); });
   $("bnDismiss").addEventListener("click", function () { state.banner.dismissed = true; save(); renderBanner(); });
   $("bnShow").addEventListener("click", function () { state.banner.dismissed = false; state.banner.collapsed = false; save(); renderBanner(); });
 
   /* ---------- time blocks ---------- */
   var refs = {};
-  function renderBlocks() { refs = {}; renderList($("blocks"), BLOCKS); renderList($("pillars"), PILLARS); renderList($("protocol"), PROTOCOL); }
+  function renderBlocks() { refs = {}; renderList($("blocks"), BLOCKS); renderList($("pillars"), PILLARS); renderList($("habits"), HABITS); renderList($("protocol"), PROTOCOL); }
   function renderList(root, list) {
     root.textContent = "";
     list.forEach(function (bl, bi) {
@@ -534,7 +582,7 @@
 
   function updateCounts() {
     var total = 0, done = 0;
-    BLOCKS.concat(PILLARS, PROTOCOL).forEach(function (bl) {
+    BLOCKS.concat(PILLARS, HABITS, PROTOCOL).forEach(function (bl) {
       var sd = 0; bl.tasks.forEach(function (_, ti) { if (state.checks[bl.id + ti]) sd++; });
       if (!bl.weekly) { total += bl.tasks.length; done += sd; }
       var r = refs[bl.id];
